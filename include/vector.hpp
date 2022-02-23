@@ -47,6 +47,7 @@ public:
   }
 
   vector_t(vector_t const & other) : vector_t() {
+    if (_data) delete _data;
     reserve(other.size());
     for (std::size_t i = 0; i < other.size(); ++i) {
       std::construct_at(_data + i, *(other._data + i));
@@ -66,9 +67,7 @@ public:
   }
 
   vector_t &operator=(vector_t && other) {
-    if (_data) {
-      delete _data;
-    }
+    if (_data) delete _data;
     _data = other._data;
     other._data = nullptr;
     return *this;
@@ -209,8 +208,8 @@ public:
   /// The destructor should destroy[1] all the values that are alive and
   /// deallocate the memory buffer, if there is one.
   ~vector_t() {
+    destroy(_data, _data + _size);
     if (_data) {
-      destroy(_data, _data + _size); // destruction
       _allocator.deallocate(_data, _capacity);
     }
   }
