@@ -29,7 +29,7 @@ private:
 
   /// Memory allocator.
   std::allocator<T> _allocator;
-
+  
 public:
   /// Default constructor that initializes an empty vector with no capacity
   vector_t() noexcept : _data(nullptr), _size(0), _capacity(0) {}
@@ -92,49 +92,49 @@ public:
   T const &operator[](std::size_t i) const { return _data[i]; }
 
   /// emplace_back constructs a new element at the end of the vector.
-   template<typename... Args> void emplace_back(Args &&...args)
+  template<typename... Args> void emplace_back(Args &&...args)
   {
     auto t = std::make_tuple(std::forward<Args>(args)...);
-    constexpr auto size = sizeof...(args);
+    constexpr auto args_size = sizeof...(args);
     [&]<std::size_t ... p>(std::index_sequence<p...>)
     {
-      std::size_t new_capacity = _capacity;
-      if (size == 0) {
+      if (args_size == 0) {	
+	if (_capacity == 0) {
+	  reserve(sizeof(_data) << 1); // reserve twice as the size
+	  std::construct_at(_data + 0); // default construct	 
+	}       
 	if (_capacity > _size) {
 	  if (_size == 0) {
-	    std::construct_at(_data + 0); // default constructing
-	    _size++;
-	  } else {
-	    _size++;
-	    std::construct_at(_data + _size - 1); // default constructing
+	    std::construct_at(_data + 0);
 	  }
-	} else {
-	  if (_size == 0) {
-	    new_capacity = sizeof(_data) * 2; // twice the initial capacity
-	    reserve(new_capacity);
-	    std::construct_at(_data + 0); // default constructing
-	    _size++;
-	  } else {
-	    new_capacity = _capacity * 2; // at least twice the capacity
-	    reserve(new_capacity);
-	    _size++;
-	    std::construct_at(_data + _size - 1); // default constructing	  
+	  if (_size > 0) {
+	    std::construct_at(_data + _size);
 	  }
 	}
-      } else if (size == 1) {
+	if (_size == _capacity && _capacity > 0) { 
+	  reserve(_capacity << 1); // reserve twice as the size
+	  std::construct_at(_data + _size); // default construct
+	}
+      } else if (args_size == 1) {
 	if (_capacity == 0) {
-	  new_capacity = sizeof(_data) * 2; // 16 bytes by default
-	  reserve(new_capacity);
+	  reserve(sizeof(_data) << 1); // allocate 16 bytes in memory buffer
 	  ((std::construct_at(_data + 0, std::get<p>(t))), ...);
-	  _size = _size + 1;
-	} else { // otherwise capacity is insufficiant
-	  new_capacity = _capacity * 2;
-	  reserve(new_capacity);
-	  _size = _size + 1;
-	  ((std::construct_at(_data + _size - 1, std::get<p>(t))), ...);
+	}
+	if (_capacity > _size) {
+	  if (_size == 0) {	    
+	    ((std::construct_at(_data + 0, std::get<p>(t))), ...);
+	  }
+	  if (_size > 0) {
+	    ((std::construct_at(_data + _size, std::get<p>(t))), ...);
+	  }
+	}
+	if (_size == _capacity && _capacity > 0) {
+	  reserve(_capacity << 1);
+	  ((std::construct_at(_data + _size, std::get<p>(t))), ...);
 	}
       }
-    } (std::make_index_sequence<size>{});
+      _size++;
+    } (std::make_index_sequence<args_size>{});
   }
 
   /// Reserve changes the capacity of the vector. 
