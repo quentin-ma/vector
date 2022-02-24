@@ -96,13 +96,11 @@ public:
   {
     auto t = std::make_tuple(std::forward<Args>(args)...);
     constexpr auto args_size = sizeof...(args);
-
-    if (_capacity == 0) {
-      reserve(1 << 4);
-      std::construct_at(_data + _size);
-    }
-    
     if (args_size == 0) {
+      if (_capacity == 0) {
+	reserve(1 << 4);
+	std::construct_at(_data + _size);
+      }
       if (_size < _capacity) std::construct_at(_data + _size);
       if (_size == _capacity && _capacity > 0) {
 	reserve(_capacity << 1);
@@ -111,6 +109,10 @@ public:
     } else {
       [&]<std::size_t ... p>(std::index_sequence<p...>)
 	{
+	  if (_capacity == 0) {
+	    reserve(1 << 4);
+	    ((std::construct_at(_data + _size, std::get<p>(t))), ...);
+	  }
 	  if (_size < _capacity) ((std::construct_at(_data + _size, std::get<p>(t))), ...);
 	  if (_size == _capacity && _capacity > 0) {
 	    reserve(_capacity << 1);
