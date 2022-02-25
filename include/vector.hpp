@@ -47,15 +47,19 @@ public:
   }
 
   vector_t(vector_t const & other) : vector_t() {
-    if (_data) delete _data;
     reserve(other.size());
     for (std::size_t i = 0; i < other.size(); ++i) {
       std::construct_at(_data + i, *(other._data + i));
     }
   }
 
-  vector_t(vector_t && other) noexcept : _data(other._data) {
+  vector_t(vector_t && other) {
+    _data = other._data;
+    _capacity = other._capacity;
+    _size = other._size;
     other._data = nullptr;
+    other._size = 0;
+    other._capacity = 0;
   }
 
   vector_t &operator=(vector_t const & other) {
@@ -67,7 +71,6 @@ public:
   }
 
   vector_t &operator=(vector_t && other) {
-    if (_data) delete _data;
     _data = other._data;
     other._data = nullptr;
     return *this;
@@ -195,8 +198,7 @@ public:
   /// deallocate the memory buffer, if there is one.
   ~vector_t() {
     destroy(_data, _data + _size);
-    if (_data) {
+    if (_data) 
       _allocator.deallocate(_data, _capacity);
-    }
   }
 };
