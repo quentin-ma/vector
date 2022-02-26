@@ -126,7 +126,7 @@ public:
 
   void resize(std::size_t new_size) {
     if (_size == new_size) return; // do nothing
-
+    
     if (_size == 0) { // if vector contain no value
       _data = _allocator.allocate(new_size);      
       for (std::size_t i = 0; i < new_size; ++i) {
