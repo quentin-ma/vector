@@ -14,6 +14,8 @@ inline T *construct_at(T *p, Args &&...args) {
 } // namespace std
 #endif
 
+#define DEFAULT_CAPACITY 16
+
 template <typename T> struct vector_t {
 private:
   /// Pointer to the memory buffer.
@@ -96,10 +98,10 @@ public:
 
   template<typename... Args> void emplace_back(Args&&... args) {
     std::size_t length = sizeof...(Args);
-    if (_capacity == 0) reserve(16); // 16 values by default
+    if (_capacity == 0) reserve(DEFAULT_CAPACITY); // 16 values by default
     if (_size < _capacity) std::construct_at(this->end(), std::forward<Args>(args)...);
     if (_size == _capacity && _capacity > 0) {
-      reserve(_capacity << 1);
+      reserve(_capacity * 2);
       std::construct_at(this->end(), std::forward<Args>(args)...);
     }
     if (length == 0) _size++;
