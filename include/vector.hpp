@@ -14,6 +14,8 @@ inline T *construct_at(T *p, Args &&...args) {
 } // namespace std
 #endif
 
+#define DEFAULT_CAPACITY 16
+
 template <typename T> struct vector_t {
 private:
   /// Pointer to the memory buffer.
@@ -49,7 +51,7 @@ public:
   vector_t(vector_t const & other) : vector_t() {
     reserve(other.size());
     for (std::size_t i = 0; i < other.size(); ++i) {
-      std::construct_at(_data + i, *(other._data + i));
+      std::construct_at(this->begin() + i, *(other._data + i));
     }
   }
 
@@ -65,7 +67,7 @@ public:
   vector_t &operator=(vector_t const & other) {
     reserve(other.size());
     for (std::size_t i = 0; i < other.size(); ++i) {
-      std::construct_at(_data + i, *(other._data + i));
+      std::construct_at(this->begin() + i, *(other._data + i));
     }
     return *this;
   }
@@ -94,49 +96,26 @@ public:
   /// Read-only element access.
   T const &operator[](std::size_t i) const { return _data[i]; }
 
-  /// emplace_back constructs a new element at the end of the vector.
-  template<typename... Args> void emplace_back(Args &&...args)
-  {
-    auto t = std::make_tuple(std::forward<Args>(args)...);
-    constexpr auto args_size = sizeof...(args);
-    if (args_size == 0) {
-      if (_capacity == 0) {
-	reserve(1 << 4);
-	std::construct_at(_data + _size);
-      }
-      if (_size < _capacity) std::construct_at(_data + _size);
-      if (_size == _capacity && _capacity > 0) {
-	reserve(_capacity << 1);
-	std::construct_at(_data + _size);
-      }
-    } else {
-      [&]<std::size_t ... p>(std::index_sequence<p...>)
-	{
-	  if (_capacity == 0) {
-	    reserve(1 << 4);
-	    ((std::construct_at(_data + _size, std::get<p>(t))), ...);
-	  }
-	  if (_size < _capacity) ((std::construct_at(_data + _size, std::get<p>(t))), ...);
-	  if (_size == _capacity && _capacity > 0) {
-	    reserve(_capacity << 1);
-	    ((std::construct_at(_data + _size, std::get<p>(t))), ...);
-	  }     
-	} (std::make_index_sequence<args_size>{});    
+  template<typename... Args> void emplace_back(Args&&... args) {
+    std::size_t length = sizeof...(Args);
+    if (_capacity == 0) reserve(DEFAULT_CAPACITY); // 16 values by default
+    if (_size < _capacity) std::construct_at(this->end(), std::forward<Args>(args)...);
+    if (_size == _capacity && _capacity > 0) {
+      reserve(_capacity * 2);
+      std::construct_at(this->end(), std::forward<Args>(args)...);
     }
-    _size++;
+    if (length == 0) _size++;
+    else _size += length;
   }
-
+  
   /// Reserve changes the capacity of the vector. 
    void reserve(std::size_t new_capacity) {
     T* buffer = _allocator.allocate(new_capacity);
     if (_data && _size > 0) {
-
       for (std::size_t i = 0; i < _size; ++i) {
-	std::construct_at(buffer + i, std::move(*(_data + i))); // move construct
+	std::construct_at(buffer + i, std::move(*(this->begin() + i))); // move construct
       }
-
-      destroy(_data, _data + _size);
-
+      destroy(this->begin(), this->end());
       _allocator.deallocate(_data, _size);
     }
     _capacity = new_capacity;
@@ -149,11 +128,11 @@ public:
 
   void resize(std::size_t new_size) {
     if (_size == new_size) return; // do nothing
-
+    
     if (_size == 0) { // if vector contain no value
       _data = _allocator.allocate(new_size);      
       for (std::size_t i = 0; i < new_size; ++i) {
-	std::construct_at(_data + i); // default constructing
+	std::construct_at(this->end()); // default constructing
       }
       _capacity = new_size;
       _size = _capacity;
@@ -164,10 +143,10 @@ public:
 	T* buffer = _allocator.allocate(new_size);
 
 	for (std::size_t i = 0; i < _size; ++i) {
-	  std::construct_at(buffer + i, std::move(*(_data + i))); // move construct
+	  std::construct_at(buffer + i, std::move(*(this->begin() + i))); // move construct
 	}
 
-	destroy(_data, _data + _size); // destruction
+	destroy(this->begin(), this->end()); // destruction
 
 	_allocator.deallocate(_data, _size);
 
@@ -180,7 +159,7 @@ public:
       }
 
       if (new_size < _size) { // 
-	destroy(_data, _data + _size); // destruction
+	destroy(this->begin(), this->end()); // destruction
 	_capacity = new_size;
 	_size = new_size;
       }
@@ -197,7 +176,7 @@ public:
   /// The destructor should destroy[1] all the values that are alive and
   /// deallocate the memory buffer, if there is one.
   ~vector_t() {
-    destroy(_data, _data + _size);
+    destroy(this->begin(), this->end());
     if (_data) 
       _allocator.deallocate(_data, _capacity);
   }
