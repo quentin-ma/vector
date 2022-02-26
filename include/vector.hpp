@@ -127,13 +127,14 @@ public:
   /// It should also reserve memory as needed.
 
   void resize(std::size_t new_size) {
-    if (_size == new_size) return; // do nothing
-    
+    if (_size == new_size) return; // do nothing   
+
     if (_size == 0) { // if vector contain no value
       _data = _allocator.allocate(new_size);      
-      for (std::size_t i = 0; i < new_size; ++i) {
+
+      for (std::size_t i = 0; i < new_size; ++i)
 	std::construct_at(this->end()); // default constructing
-      }
+      
       _capacity = new_size;
       _size = _capacity;
     }
@@ -142,28 +143,25 @@ public:
       if (new_size > _size) {
 	T* buffer = _allocator.allocate(new_size);
 
-	for (std::size_t i = 0; i < _size; ++i) {
+	for (std::size_t i = 0; i < _size; ++i)
 	  std::construct_at(buffer + i, std::move(*(this->begin() + i))); // move construct
-	}
-
+	
 	destroy(this->begin(), this->end()); // destruction
-
 	_allocator.deallocate(_data, _size);
-
-	for (std::size_t i = _size; i < new_size; ++i) {
+	
+	for (std::size_t i = _size; i < new_size; ++i)
 	  std::construct_at(buffer + i); // default constructing
-	}
+	
 	_size = new_size;
 	_capacity = _size;
 	_data = buffer; // copying
       }
-
+      
       if (new_size < _size) { // 
 	destroy(this->begin(), this->end()); // destruction
 	_capacity = new_size;
 	_size = new_size;
-      }
-      
+      }      
     }
   }
 
