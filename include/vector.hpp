@@ -49,7 +49,10 @@ public:
   }
 
   vector_t(vector_t const & other) : vector_t() {
-    reserve(other.size());
+    if (_size < other.size()) {
+      reserve(other.size());
+      _size = _capacity;
+    }
     for (std::size_t i = 0; i < other.size(); ++i) {
       std::construct_at(this->begin() + i, *(other._data + i));
     }
@@ -65,7 +68,10 @@ public:
   }
 
   vector_t &operator=(vector_t const & other) {
-    reserve(other.size());
+    if (_size < other.size()) {
+      reserve(other.size());
+      _size = _capacity;
+    }
     for (std::size_t i = 0; i < other.size(); ++i) {
       std::construct_at(this->begin() + i, *(other._data + i));
     }
@@ -74,7 +80,11 @@ public:
 
   vector_t &operator=(vector_t && other) {
     _data = other._data;
+    _capacity = other._capacity;
+    _size = other._size;
     other._data = nullptr;
+    other._size = 0;
+    other._capacity = 0;
     return *this;
   }
 
@@ -111,7 +121,7 @@ public:
   /// Reserve changes the capacity of the vector. 
    void reserve(std::size_t new_capacity) {
     T* buffer = _allocator.allocate(new_capacity);
-    if (_data && _size > 0) {
+    if (_size > 0) {
       for (std::size_t i = 0; i < _size; ++i) {
 	std::construct_at(buffer + i, std::move(*(this->begin() + i))); // move construct
       }
@@ -174,8 +184,9 @@ public:
   /// The destructor should destroy[1] all the values that are alive and
   /// deallocate the memory buffer, if there is one.
   ~vector_t() {
-    destroy(this->begin(), this->end());
-    if (_data) 
+    if (_size > 0) {
+      destroy(this->begin(), this->end());       
       _allocator.deallocate(_data, _capacity);
+    }
   }
 };
