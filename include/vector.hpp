@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <type_traits>
-#include <tuple>
 
 #ifndef __cpp_lib_constexpr_dynamic_alloc
 namespace std {
@@ -35,6 +34,7 @@ public:
       reserve(other.size());
       _size = _capacity;
     }
+
     for (std::size_t i = 0; i < other.size(); ++i) {
       std::construct_at(this->begin() + i, *(other._data + i));
     }
@@ -54,9 +54,11 @@ public:
       reserve(other.size());
       _size = _capacity;
     }
+
     for (std::size_t i = 0; i < other.size(); ++i) {
       std::construct_at(this->begin() + i, *(other._data + i));
     }
+
     return *this;
   }
 
@@ -96,9 +98,11 @@ public:
    void reserve(std::size_t new_capacity) {
     T* buffer = _allocator.allocate(new_capacity);
     if (_size > 0) {
+
       for (std::size_t i = 0; i < _size; ++i) {
 	std::construct_at(buffer + i, std::move(*(this->begin() + i))); 
       }
+      
       destroy(this->begin(), this->end());
       _allocator.deallocate(_data, _size);
     }
@@ -112,8 +116,9 @@ public:
     if (_size == 0) {
       _data = _allocator.allocate(new_size);      
 
-      for (std::size_t i = 0; i < new_size; ++i)
+      for (std::size_t i = 0; i < new_size; ++i) {
 	std::construct_at(this->end());
+      }
       
       _capacity = new_size;
       _size = _capacity;
@@ -123,31 +128,34 @@ public:
       if (new_size > _size) {
 	T* buffer = _allocator.allocate(new_size);
 
-	for (std::size_t i = 0; i < _size; ++i)
-	  std::construct_at(buffer + i, std::move(*(this->begin() + i))); 
+	for (std::size_t i = 0; i < _size; ++i) {
+	  std::construct_at(buffer + i, std::move(*(this->begin() + i)));
+	}
 	
 	destroy(this->begin(), this->end()); 
 	_allocator.deallocate(_data, _size);
 	
-	for (std::size_t i = _size; i < new_size; ++i)
-	  std::construct_at(buffer + i); 
+	for (std::size_t i = _size; i < new_size; ++i) {
+	  std::construct_at(buffer + i);
+	}
 	
 	_size = new_size;
 	_capacity = _size;
-	_data = buffer; // copying
+	_data = buffer;
       }
       
-      if (new_size < _size) { // 
-	destroy(this->begin(), this->end()); // destruction
+      if (new_size < _size) {
+	destroy(this->begin() + new_size, this->end());
 	_capacity = new_size;
-	_size = new_size;
+	_size = _capacity;
       }      
     }
   }
 
   template< class ForwardIt> constexpr void destroy(ForwardIt first, ForwardIt last) {
-    for (; first !=last; ++first)
+    for (; first !=last; ++first) {
       std::destroy_at(std::addressof(*first));
+    }
   }
 
   ~vector_t() {
