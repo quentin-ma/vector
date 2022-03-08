@@ -159,9 +159,7 @@ public:
   }
 
   ~vector_t() {
-    if (_size > 0) {
-      destroy(this->begin(), this->end());       
-      _allocator.deallocate(_data, _capacity);
-    }
+    if (_size > 0) destroy(this->begin(), this->end());       
+    _allocator.deallocate(_data, _capacity);
   }
 };
